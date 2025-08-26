@@ -1,24 +1,18 @@
 const jwt = require("jsonwebtoken");
 
-const auth = (req, res, next) => {
-  const token = req.header("Authorization")?.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "No token" });
-  }
-
+module.exports = function auth(req, res, next) {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    if (!token) {
+      return res.status(401).json({ message: "Missing token" });
+    }
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = payload.id;
     next();
   } catch (err) {
     res.status(401).json({ message: "Invalid token" });
   }
 };
-
-const authMiddleware = require("./middleware/auth");
-
-app.get("/api/dashboard", authMiddleware, (req, res) => {
-  res.json({ message: `Hello user ${req.user.id}` });
-});
-
-module.exports = auth;
